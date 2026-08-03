@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Monitor - Start</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #666;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .error {
+            color: red;
+            margin-top: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1>Start Interview</h1>
+        <div class="form-group">
+            <label for="name">Candidate Name</label>
+            <input type="text" id="name" required placeholder="name">
+        </div>
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" required placeholder="name@example.com">
+        </div>
+        <div class="form-group">
+            <label for="resume">Upload Resume (PDF)</label>
+            <input type="file" id="resume" accept=".pdf">
+        </div>
+        <button onclick="startSession()">Begin Session</button>
+        <div style="margin-top: 15px; text-align: center; border-top: 1px solid #eee; padding-top: 15px;">
+            <a href="/interviewer/" style="color: #666; text-decoration: none; font-size: 0.9rem;">Login as
+                Interviewer</a>
+        </div>
+        <div id="error-msg" class="error"></div>
+    </div>
+
+    <script>
+        async function startSession() {
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const resumeInput = document.getElementById('resume');
+            const errorDiv = document.getElementById('error-msg');
+
+            if (!name || !email) {
+                errorDiv.textContent = "Please fill in all fields (Name, Email)";
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('name', name);
+                formData.append('email', email);
+                if (resumeInput.files[0]) {
+                    formData.append('resume', resumeInput.files[0]);
+                }
+
+                const response = await fetch('/api/start_interview/', {
+                    method: 'POST',
+                    body: formData
+                    // No headers content-type, let browser set boundary
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    // Store session ID in memory or session storage
+                    sessionStorage.setItem('session_id', data.session_id);
+                    // Request camera permission explicitly here or on next page
+                    // Redirect
+                    window.location.href = '/monitor/';
+                } else {
+                    errorDiv.textContent = data.message;
+                    errorDiv.style.display = 'block';
+                }
+            } catch (e) {
+                errorDiv.textContent = "Connection error. Ensure backend is running.";
+                errorDiv.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+
+</html>

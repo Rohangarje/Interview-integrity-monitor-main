@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Interviewer Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #20232a;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            height: 90vh;
+        }
+
+        /* Left Section: Camera */
+        .camera-section {
+            background: black;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .camera-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        /* Right Section: Controls & Data */
+        .dashboard-section {
+            background: #333;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        h2,
+        h3 {
+            border-bottom: 1px solid #555;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ddd;
+        }
+
+        select,
+        input,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            background: #444;
+            border: 1px solid #555;
+            color: white;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .candidate-stats {
+            background: #444;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007bff;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-item {
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .stat-value {
+            font-weight: bold;
+        }
+
+        .risk-Green {
+            color: #4caf50;
+        }
+
+        .risk-Yellow {
+            color: #ffeb3b;
+        }
+
+        .risk-Red {
+            color: #f44336;
+        }
+
+        #msg-box {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+            text-align: center;
+        }
+
+        .success {
+            background: #2e7d32;
+        }
+
+        .error {
+            background: #c62828;
+        }
+
+        .resume-link {
+            display: inline-block;
+            margin-top: 10px;
+            color: #64b5f6;
+            text-decoration: none;
+        }
+
+        .resume-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Live Camera View -->
+        <div class="camera-section">
+            <span class="camera-label">Candidate Live Feed</span>
+            <!-- Replaced local webcam with candidate feed -->
+            <img id="candidate-feed" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" src=""
+                alt="Waiting for candidate video...">
+        </div>
+
+        <!-- Dashboard -->
+        <div class="dashboard-section">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #555; padding-bottom: 10px; margin-bottom: 15px;">
+                <h2 style="border:none; padding:0; margin:0;">Candidate Evaluation</h2>
+                <a href="/"
+                    style="background: #dc3545; color: white; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-size: 0.9rem;">Logout</a>
+            </div>
+
+            <div class="form-group">
+                <label for="candidate-select">Select Candidate</label>
+                <select id="candidate-select" onchange="loadCandidateData()">
+                    <option value="">-- Choose Candidate --</option>
+                </select>
+            </div>
+
+            <!-- Stats Display -->
+            <div id="candidate-data" style="display:none;">
+                <div class="candidate-stats">
+                    <h3>Last Session Data</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">Session ID</div>
+                            <div class="stat-value" id="disp-session-id">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Date</div>
+                            <div class="stat-value" id="disp-date">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Violations</div>
+                            <div class="stat-value">
+                                <span id="disp-violations">-</span>
+                                <button id="toggle-violations-btn" onclick="toggleViolations()"
+                                    style="font-size: 0.8rem; padding: 2px 5px; margin-left: 10px; display: none;">Show
+                                    Details</button>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Risk Level</div>
+                            <div class="stat-value" id="disp-risk">-</div>
+                        </div>
+                    </div>
+
+                    <!-- Violation Details Expandable -->
+                    <div id="violations-list"
+                        style="display:none; background:#333; margin-top:10px; padding:10px; border-radius:4px; max-height:200px; overflow-y:auto; border:1px solid #555;">
+                        <h4 style="margin-top:0; border-bottom:1px solid #666; padding-bottom:5px;">Violation Log</h4>
+                        <div id="violations-body"></div>
+                    </div>
+
+                    <div>
+                        <a href="#" id="resume-link" class="resume-link" target="_blank">View Resume</a>
+                    </div>
+                </div>
+
+                <h3>Evaluation Form</h3>
+                <div class="form-group">
+                    <label for="interviewer-name">Your Name</label>
+                    <input type="text" id="interviewer-name" placeholder="Enter your name">
+                </div>
+
+                <div class="stats-grid">
+                    <div class="form-group">
+                        <label for="val-behavior">Behavior</label>
+                        <select id="val-behavior">
+                            <option value="Poor">Poor</option>
+                            <option value="Average" selected>Average</option>
+                            <option value="Good">Good</option>
+                            <option value="Excellent">Excellent</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="val-confidence">Confidence</label>
+                        <select id="val-confidence">
+                            <option value="Low">Low</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="val-knowledge">Knowledge</label>
+                        <select id="val-knowledge">
+                            <option value="Poor">Poor</option>
+                            <option value="Average" selected>Average</option>
+                            <option value="Good">Good</option>
+                            <option value="Excellent">Excellent</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="val-notes">Notes / Observations</label>
+                    <textarea id="val-notes" placeholder="Detailed remarks..."></textarea>
+                </div>
+
+                <button onclick="submitFeedback()">Save Evaluation</button>
+            </div>
+
+            <div id="msg-box"></div>
+        </div>
+    </div>
+
+    <script>
+        // Video Monitoring (Poll latest frame)
+        let framePollingInterval = null;
+        let dataPollingInterval = null;
+
+        function startFramePolling() {
+            if (framePollingInterval) clearInterval(framePollingInterval);
+            const imgParams = document.getElementById('candidate-feed');
+
+            framePollingInterval = setInterval(async () => {
+                if (!currentSessionId) return;
+
+                try {
+                    // Add timestamp to prevent caching
+                    const res = await fetch(`/api/get_latest_frame/?session_id=${currentSessionId}&t=${Date.now()}`);
+                    const data = await res.json();
+                    if (data.status === 'success' && data.frame) {
+                        imgParams.src = "data:image/jpeg;base64," + data.frame;
+                    }
+                } catch (e) {
+                    console.error("Frame poll error", e);
+                }
+            }, 1000); // Poll every second (matches 1FPS upload)
+        }
+
+        function startDataPolling() {
+            if (dataPollingInterval) clearInterval(dataPollingInterval);
+
+            dataPollingInterval = setInterval(async () => {
+                if (!currentSessionId) return;
+                // We can re-use loadCandidateData but we need to avoid flickering or resetting UI interaction
+                // Ideally we separate data fetch from UI render, but for now we can just call a lightweight update
+                updateCandidateStats();
+            }, 2000);
+        }
+
+        async function updateCandidateStats() {
+            const candId = document.getElementById('candidate-select').value;
+            if (!candId) return;
+
+            try {
+                const res = await fetch(`/api/get_session_data/?candidate_id=${candId}`);
+                const json = await res.json();
+
+                if (json.status === 'success') {
+                    const d = json.data;
+                    // Update stats only
+                    document.getElementById('disp-violations').textContent = d.violation_count;
+
+                    const riskEl = document.getElementById('disp-risk');
+                    riskEl.textContent = d.risk_level;
+                    riskEl.className = `stat-value risk-${d.risk_level}`;
+
+                    // Update violations list if expanded or generally
+                    const violationsBody = document.getElementById('violations-body');
+                    // Simple rebuild for now - improved generic diffing would be better but this is fine for text
+                    let html = '';
+                    if (d.violations && d.violations.length > 0) {
+                        d.violations.forEach(v => {
+                            html += `<div style="border-bottom:1px solid #555; padding:8px 0; font-size:0.9rem;">
+                                <strong>${v.timestamp}</strong> - <span style="color:#ff6b6b">${v.type}</span> <br> <span style="color:#aaa">${v.details || ''}</span>
+                            </div>`;
+                        });
+                        document.getElementById('toggle-violations-btn').style.display = 'inline-block';
+                    } else {
+                        document.getElementById('toggle-violations-btn').style.display = 'none';
+                    }
+                    if (violationsBody.innerHTML !== html) {
+                        violationsBody.innerHTML = html;
+                    }
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // Removed startCamera() as we want to see candidate, not self.
+        // startCamera();
+
+        // Load Candidates
+        async function loadCandidates() {
+            const select = document.getElementById('candidate-select');
+            try {
+                const res = await fetch('/api/get_candidates/');
+                const data = await res.json();
+                if (data.status === 'success') {
+                    data.candidates.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = `${c.name} (${c.email})`;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (e) { console.error(e); }
+        }
+        loadCandidates();
+
+        let currentSessionId = null;
+
+        // Load specific candidate data
+        async function loadCandidateData() {
+            const candId = document.getElementById('candidate-select').value;
+            const container = document.getElementById('candidate-data');
+
+            if (!candId) {
+                container.style.display = 'none';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/get_session_data/?candidate_id=${candId}`);
+                const json = await res.json();
+
+                if (json.status === 'success') {
+                    const d = json.data;
+                    currentSessionId = d.session_id; // Store for submission
+                    startFramePolling(); // Start getting video
+                    startDataPolling(); // Start getting live stats
+
+                    document.getElementById('disp-session-id').textContent = d.session_id;
+                    document.getElementById('disp-date').textContent = new Date(d.start_time).toLocaleString();
+                    document.getElementById('disp-violations').textContent = d.violation_count;
+
+                    const riskEl = document.getElementById('disp-risk');
+                    riskEl.textContent = d.risk_level;
+                    riskEl.className = `stat-value risk-${d.risk_level}`;
+
+                    // Violations
+                    const violationsContainer = document.getElementById('violations-list');
+                    const violationsBody = document.getElementById('violations-body');
+                    violationsBody.innerHTML = '';
+
+                    if (d.violations && d.violations.length > 0) {
+                        d.violations.forEach(v => {
+                            const row = document.createElement('div');
+                            row.style.borderBottom = '1px solid #555';
+                            row.style.padding = '8px 0';
+                            row.style.fontSize = '0.9rem';
+                            row.innerHTML = `<strong>${v.timestamp}</strong> - <span style="color:#ff6b6b">${v.type}</span> <br> <span style="color:#aaa">${v.details || ''}</span>`;
+                            violationsBody.appendChild(row);
+                        });
+                        document.getElementById('toggle-violations-btn').style.display = 'inline-block';
+                    } else {
+                        document.getElementById('toggle-violations-btn').style.display = 'none';
+                    }
+                    violationsContainer.style.display = 'none'; // Reset to hidden on new load
+
+                    const resumeLink = document.getElementById('resume-link');
+                    if (d.resume_url) {
+                        resumeLink.href = d.resume_url;
+                        resumeLink.textContent = 'View Resume';
+                        resumeLink.style.color = '#64b5f6';
+                        resumeLink.style.pointerEvents = 'auto';
+                        resumeLink.style.textDecoration = 'none';
+                    } else {
+                        resumeLink.href = 'javascript:void(0)';
+                        resumeLink.textContent = 'No Resume Available';
+                        resumeLink.style.color = '#777';
+                        resumeLink.style.pointerEvents = 'none';
+                        resumeLink.style.textDecoration = 'none';
+                    }
+                    resumeLink.style.display = 'inline-block';
+
+                    container.style.display = 'block';
+                } else {
+                    alert(json.message || "No session data found for this candidate");
+                    container.style.display = 'none';
+                }
+            } catch (e) {
+                console.error(e);
+                container.style.display = 'none';
+            }
+        }
+
+        // Submit Feedback
+        async function submitFeedback() {
+            if (!currentSessionId) return;
+
+            const msgBox = document.getElementById('msg-box');
+            msgBox.style.display = 'none';
+
+            const payload = {
+                session_id: currentSessionId,
+                interviewer_name: document.getElementById('interviewer-name').value || 'Anonymous Interviewer',
+                behavior: document.getElementById('val-behavior').value,
+                confidence: document.getElementById('val-confidence').value,
+                knowledge: document.getElementById('val-knowledge').value,
+                notes: document.getElementById('val-notes').value
+            };
+
+            try {
+                const res = await fetch('/api/save_feedback/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+
+                if (json.status === 'success') {
+                    alert("Evaluation Saved Successfully!");
+                    // Clear inputs?
+                    document.getElementById('val-notes').value = '';
+                } else {
+                    throw new Error(json.message);
+                }
+            } catch (e) {
+                alert("Error saving: " + e.message);
+            }
+        }
+
+        function toggleViolations() {
+            const el = document.getElementById('violations-list');
+            const btn = document.getElementById('toggle-violations-btn');
+            if (el.style.display === 'none') {
+                el.style.display = 'block';
+                btn.textContent = 'Hide Details';
+            } else {
+                el.style.display = 'none';
+                btn.textContent = 'Show Details';
+            }
+        }
+    </script>
+</body>
+
+</html>
